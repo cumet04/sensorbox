@@ -10,18 +10,17 @@
 ESP8266WebServer *server = NULL;
 
 void setup() {
-    delay(3 * 1000);
-
     // initialize
     Serial.begin(115200);
+    Serial.println();
     if (!SPIFFS.begin()) {
         Serial.println("Failed to mount file system");
-        return;
+        goto restart;
     }
     wifi_config config;
     if (loadConfig(config) != 0) {
         Serial.println("Failed to load config file");
-        return;
+        goto restart;
     }
 
     // connect to wifi
@@ -42,6 +41,12 @@ void setup() {
     server->onNotFound(handleNotFound);
     server->begin();
     Serial.println("HTTP server started !!");
+    return;
+
+restart:
+    Serial.println("setup failed. It's to restart after 5 secs.");
+    delay(5 * 1000);
+    ESP.restart();
 }
 
 void loop() {
