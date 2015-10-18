@@ -1,5 +1,4 @@
 sensor box
-
 ==========================
 
 A IoT device which provides sensor values via HTTP
