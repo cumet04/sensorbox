@@ -1,4 +1,5 @@
 #include <DHT.h>
+#include <ArduinoJson.h>
 #include "Adafruit_MPL115A2.h"
 
 #define DHTTYPE DHT22	// DHT 22 (AM2302)
@@ -36,39 +37,55 @@ void countPIR() {
 	if (digitalRead(PIN_PIR) == HIGH) count++;
 }
 
-bool getCurrentPIR() {
-	return digitalRead(PIN_PIR) == HIGH;
+// getValue functions ----------------------------------------------------------
+
+void getCurrentPIR(JsonObject& root) {
+    root["name"] = "currentpir";
+    root["value"] = digitalRead(PIN_PIR) == HIGH;
 }
 
-int getPIRCount() {
-	return pir_count;
+void getPIRCount(JsonObject& root) {
+    root["name"] = "pircount";
+    root["value"] = pir_count;
 }
 
-bool getButton() {
-	return digitalRead(PIN_BUTTON) == HIGH;
+void getButton(JsonObject& root) {
+    root["name"] = "button";
+    root["value"] = digitalRead(PIN_BUTTON) == HIGH;
 }
 
-float getBrightness(){
+void getBrightness(JsonObject& root){
 	int reading = analogRead(PIN_BRIGHTNESS);
 	float voltage = ((long)reading * 3300) / 4095; //real voltage
 	float microamp = (voltage * 1000) / 330; //micro amp
 	float lx = microamp / (290 / 100);
-	return lx;
+
+    root["name"] = "brightness";
+    root["value"] = lx;
+    root["unit"] = "unknown";
 }
 
-float getMPLTemp(){
-	return pressureSensor.getTemperature();
+void getMPLTemp(JsonObject& root){
+    root["name"] = "mpltemp";
+    root["value"] = pressureSensor.getTemperature();
+    root["unit"] = "C";
 }
 
-float getPressure(){
-	return pressureSensor.getPressure() * 10;
+void getPressure(JsonObject& root){
+    root["name"] = "pressure";
+    root["value"] = pressureSensor.getPressure() * 10;
+    root["unit"] = "hPa";
 }
 
-float getHumidity(){
-  return dht.readHumidity();
+void getHumidity(JsonObject& root){
+    root["name"] = "humidity";
+    root["value"] = dht.readHumidity();
+    root["unit"] = "unknown";
 }
 
-float getTemprature(){
-  return dht.readTemperature();
+void getTemprature(JsonObject& root){
+    root["name"] = "temprature";
+    root["value"] = dht.readTemperature();
+    root["unit"] = "C";
 }
 

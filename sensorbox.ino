@@ -1,4 +1,5 @@
 #include <ESP8266WiFi.h>
+#include <functional>
 #include <WiFiClient.h>
 #include <ESP8266WebServer.h>
 #include <ArduinoJson.h>
@@ -41,15 +42,17 @@ void setup() {
     server = new ESP8266WebServer(8080);
     server->on("/sensor/", handleHelp);
     server->on("/sensor/help", handleHelp);
-    server->on("/sensor/button", handleGet_button);
-    server->on("/sensor/brightness", handleGet_brightness);
-    server->on("/sensor/pressure", handleGet_pressure);
-    server->on("/sensor/mpltemp", handleGet_MPLTemp);
-    server->on("/sensor/temprature", handleGet_temprature);
-    server->on("/sensor/humidity", handleGet_humidity);
-    server->on("/sensor/currentpir", handleGet_currentPIR);
-    server->on("/sensor/pircount", handleGet_PIRCount);
     server->onNotFound(handleNotFound);
+
+    server->on("/sensor/button",     []{ respondValue(getButton); });
+    server->on("/sensor/brightness", []{ respondValue(getBrightness); });
+    server->on("/sensor/pressure",   []{ respondValue(getPressure); });
+    server->on("/sensor/mpltemp",    []{ respondValue(getMPLTemp); });
+    server->on("/sensor/temprature", []{ respondValue(getTemprature); });
+    server->on("/sensor/humidity",   []{ respondValue(getHumidity); });
+    server->on("/sensor/currentpir", []{ respondValue(getCurrentPIR); });
+    server->on("/sensor/pircount",   []{ respondValue(getPIRCount); });
+
     server->begin();
     Serial.println("HTTP server started !!");
     return;
@@ -64,116 +67,15 @@ void loop() {
     if (server != NULL) server->handleClient();
 }
 
-void handleGet_button() {
+void respondValue(std:function<void(JsonObject&)> getter) {
     String result;
 
-    StaticJsonBuffer<100> jsonBuffer;
+    StaticJsonBuffer<200> jsonBuffer;
     JsonObject& root = jsonBuffer.createObject();
-    root["name"] = "button";
-    root["value"] = getButton();
+    getter(root);
     root.printTo(result);
 
     Serial.println(result);
-
-    server->send(200, "application/json", result);
-}
-
-void handleGet_PIRCount() {
-    String result;
-
-    StaticJsonBuffer<100> jsonBuffer;
-    JsonObject& root = jsonBuffer.createObject();
-    root["name"] = "pircount";
-    root["value"] = getPIRCount();
-    root["max"] = 30;
-    root.printTo(result);
-
-    Serial.println(result);
-
-    server->send(200, "application/json", result);
-}
-
-void handleGet_currentPIR() {
-    String result;
-
-    StaticJsonBuffer<100> jsonBuffer;
-    JsonObject& root = jsonBuffer.createObject();
-    root["name"] = "currentpir";
-    root["value"] = getCurrentPIR();
-    root.printTo(result);
-
-    Serial.println(result);
-
-    server->send(200, "application/json", result);
-}
-
-void handleGet_brightness() {
-    String result;
-
-    StaticJsonBuffer<100> jsonBuffer;
-    JsonObject& root = jsonBuffer.createObject();
-    root["name"] = "brightness";
-    root["value"] = getBrightness();
-    root.printTo(result);
-
-    Serial.println(result);
-
-    server->send(200, "application/json", result);
-}
-
-void handleGet_pressure() {
-    String result;
-
-    StaticJsonBuffer<100> jsonBuffer;
-    JsonObject& root = jsonBuffer.createObject();
-    root["name"] = "pressure";
-    root["value"] = getPressure();
-    root.printTo(result);
-
-    Serial.println(result);
-
-    server->send(200, "application/json", result);
-}
-
-void handleGet_MPLTemp() {
-    String result;
-
-    StaticJsonBuffer<100> jsonBuffer;
-    JsonObject& root = jsonBuffer.createObject();
-    root["name"] = "mpltemp";
-    root["value"] = getMPLTemp();
-    root.printTo(result);
-
-    Serial.println(result);
-
-    server->send(200, "application/json", result);
-}
-
-void handleGet_temprature() {
-    String result;
-
-    StaticJsonBuffer<100> jsonBuffer;
-    JsonObject& root = jsonBuffer.createObject();
-    root["name"] = "temprature";
-    root["value"] = getTemprature();
-    root.printTo(result);
-
-    Serial.println(result);
-
-    server->send(200, "application/json", result);
-}
-
-void handleGet_humidity() {
-    String result;
-
-    StaticJsonBuffer<100> jsonBuffer;
-    JsonObject& root = jsonBuffer.createObject();
-    root["name"] = "humidity";
-    root["value"] = getHumidity();
-    root.printTo(result);
-
-    Serial.println(result);
-
     server->send(200, "application/json", result);
 }
 
