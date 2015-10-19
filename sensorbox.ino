@@ -19,12 +19,12 @@ void setup() {
     Serial.println();
     if (!SPIFFS.begin()) {
         Serial.println("Failed to mount file system");
-        goto restart;
+        return;
     }
     wifi_config config;
     if (loadConfig(config) != 0) {
         Serial.println("Failed to load config file");
-        goto restart;
+        return;
     }
     initializeSensors();
 
@@ -44,35 +44,55 @@ void setup() {
     server->on("/sensor/help", handleHelp);
     server->onNotFound(handleNotFound);
 
-    server->on("/sensor/button",     []{ respondValue(getButton); });
-    server->on("/sensor/brightness", []{ respondValue(getBrightness); });
-    server->on("/sensor/pressure",   []{ respondValue(getPressure); });
-    server->on("/sensor/mpltemp",    []{ respondValue(getMPLTemp); });
-    server->on("/sensor/temprature", []{ respondValue(getTemprature); });
-    server->on("/sensor/humidity",   []{ respondValue(getHumidity); });
-    server->on("/sensor/currentpir", []{ respondValue(getCurrentPIR); });
-    server->on("/sensor/pircount",   []{ respondValue(getPIRCount); });
+    server->on("/sensor/all", respondAllValues);
+
+    // 各センサ値用のハンドラを追加する．
+    // ラムダ式内からコード内の通常関数は呼び出せず(not in scope)，
+    // 更にaddHandlerに関しても 'class ESP8266WebServer' has no member
+    // だったため，このような実装にするしかなかった
+    std::function<void(std::function<void(JsonObject&)>)> handler = [](std::function<void(JsonObject&)> getter){
+        String result;
+
+        StaticJsonBuffer<200> jsonBuffer;
+        JsonObject& root = jsonBuffer.createObject();
+        getter(root);
+        root.printTo(result);
+
+        Serial.println(result);
+        server->send(200, "application/json", result);
+    };
+    server->on("/sensor/button",     [handler]{ handler(getButton); });
+    server->on("/sensor/brightness", [handler]{ handler(getBrightness); });
+    server->on("/sensor/pressure",   [handler]{ handler(getPressure); });
+    server->on("/sensor/mpltemp",    [handler]{ handler(getMPLTemp); });
+    server->on("/sensor/temprature", [handler]{ handler(getTemprature); });
+    server->on("/sensor/humidity",   [handler]{ handler(getHumidity); });
+    server->on("/sensor/currentpir", [handler]{ handler(getCurrentPIR); });
+    server->on("/sensor/pircount",   [handler]{ handler(getPIRCount); });
 
     server->begin();
     Serial.println("HTTP server started !!");
-    return;
-
-restart:
-    Serial.println("setup failed. It's to restart after 5 secs.");
-    delay(5 * 1000);
-    ESP.restart();
 }
 
 void loop() {
     if (server != NULL) server->handleClient();
 }
 
-void respondValue(std:function<void(JsonObject&)> getter) {
+void respondAllValues() {
     String result;
 
-    StaticJsonBuffer<200> jsonBuffer;
-    JsonObject& root = jsonBuffer.createObject();
-    getter(root);
+    StaticJsonBuffer<1000> jsonBuffer;
+    JsonArray& root = jsonBuffer.createArray();
+
+    getButton    (root.createNestedObject());
+    getBrightness(root.createNestedObject());
+    getPressure  (root.createNestedObject());
+    getMPLTemp   (root.createNestedObject());
+    getTemprature(root.createNestedObject());
+    getHumidity  (root.createNestedObject());
+    getCurrentPIR(root.createNestedObject());
+    getPIRCount  (root.createNestedObject());
+
     root.printTo(result);
 
     Serial.println(result);
